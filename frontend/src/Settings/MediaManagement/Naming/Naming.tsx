@@ -126,7 +126,7 @@ function Naming() {
     },
   ];
 
-  const renameProfileOptions = [
+  const noIntroRenameProfileOptions = [
     { key: 'gamarr', value: translate('RenameProfileGamarr') },
     {
       key: 'noIntroPreserveById',
@@ -188,15 +188,27 @@ function Naming() {
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('RenameProfile')}</FormLabel>
+            <FormLabel>{translate('NoIntroRenameProfile')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.SELECT}
               name="renameProfile"
-              values={renameProfileOptions}
-              helpText={translate('RenameProfileHelpText')}
+              values={noIntroRenameProfileOptions}
+              helpText={translate('NoIntroRenameProfileHelpText')}
               onChange={handleInputChange}
               {...settings.renameProfile}
+            />
+          </FormGroup>
+
+          <FormGroup size={sizes.MEDIUM}>
+            <FormLabel>{translate('SwitchTitleDbRename')}</FormLabel>
+
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="enableSwitchTitleDbRename"
+              helpText={translate('SwitchTitleDbRenameHelpText')}
+              onChange={handleInputChange}
+              {...settings.enableSwitchTitleDbRename}
             />
           </FormGroup>
 
