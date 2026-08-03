@@ -35,6 +35,7 @@ namespace NzbDrone.Core.Organizer
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IGameComponentRepository _componentRepository;
         private readonly INoIntroCatalogEntryRepository _noIntroEntryRepository;
+        private readonly ISwitchTitleDbService _switchTitleDbService;
         private readonly Logger _logger;
 
         private static readonly Regex TitleRegex = new Regex(@"(?<tag>\{(?<prefix>[-{ ._\[(]*)(?:edition-))?\{(?<prefix>[-{ ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[ ,a-z0-9|+-]+(?<![- ])))?(?<suffix>[-} ._)\]]*)\}",
@@ -92,6 +93,7 @@ namespace NzbDrone.Core.Organizer
                                ICustomFormatCalculationService formatCalculator,
                                IGameComponentRepository componentRepository,
                                INoIntroCatalogEntryRepository noIntroEntryRepository,
+                               ISwitchTitleDbService switchTitleDbService,
                                Logger logger)
         {
             _namingConfigService = namingConfigService;
@@ -100,6 +102,7 @@ namespace NzbDrone.Core.Organizer
             _formatCalculator = formatCalculator;
             _componentRepository = componentRepository;
             _noIntroEntryRepository = noIntroEntryRepository;
+            _switchTitleDbService = switchTitleDbService;
             _logger = logger;
         }
 
@@ -110,9 +113,11 @@ namespace NzbDrone.Core.Organizer
                 namingConfig = _namingConfigService.GetConfig();
             }
 
-            if (!namingConfig.RenameGames)
+            var switchTitleDbFileName = GetSwitchTitleDbFileName(game, gameFile, namingConfig);
+
+            if (switchTitleDbFileName.IsNotNullOrWhiteSpace())
             {
-                return GetOriginalTitle(gameFile, false);
+                return switchTitleDbFileName;
             }
 
             var noIntroFileName = GetNoIntroFileName(gameFile, namingConfig.RenameProfile);
@@ -120,6 +125,11 @@ namespace NzbDrone.Core.Organizer
             if (noIntroFileName.IsNotNullOrWhiteSpace())
             {
                 return noIntroFileName;
+            }
+
+            if (!namingConfig.RenameGames)
+            {
+                return GetOriginalTitle(gameFile, false);
             }
 
             if (namingConfig.StandardGameFormat.IsNullOrWhiteSpace())
@@ -161,6 +171,81 @@ namespace NzbDrone.Core.Organizer
             }
 
             return Path.Combine(components.ToArray());
+        }
+
+        private string GetSwitchTitleDbFileName(Game game, GameFile gameFile, NamingConfig namingConfig)
+        {
+            if (!namingConfig.EnableSwitchTitleDbRename || game?.Platform != PlatformFamily.NintendoSwitch || gameFile == null)
+            {
+                return null;
+            }
+
+            var actualFileName = GetActualFileName(gameFile);
+            var parsed = SwitchTitleDbParsedFileName.Parse(actualFileName);
+
+            if (parsed != null)
+            {
+                return BuildSwitchTitleDbFileName(GetSwitchDisplayTitle(game, gameFile), parsed.TitleId, parsed.Version);
+            }
+
+            var component = gameFile.ComponentId > 0 ? _componentRepository.Get(gameFile.ComponentId) : null;
+            var contentTitles = GetSwitchLookupTitles(game, component);
+            var match = component?.ComponentType == GameComponentType.Dlc
+                ? _switchTitleDbService.FindDlcByTitles(contentTitles)
+                : _switchTitleDbService.FindBaseByTitles(contentTitles);
+
+            if (match == null)
+            {
+                return null;
+            }
+
+            var titleId = component?.ComponentType == GameComponentType.Update
+                ? GetSwitchUpdateTitleId(match.TitleId)
+                : match.TitleId;
+            var version = _switchTitleDbService.GetLatestVersion(titleId) ?? 0;
+
+            return BuildSwitchTitleDbFileName(GetSwitchDisplayTitle(game, gameFile), titleId, version);
+        }
+
+        private static IEnumerable<string> GetSwitchLookupTitles(Game game, GameComponent component)
+        {
+            if (component?.ComponentType == GameComponentType.Dlc && component.Title.IsNotNullOrWhiteSpace())
+            {
+                yield return component.Title;
+                yield break;
+            }
+
+            if (game.Title.IsNotNullOrWhiteSpace())
+            {
+                yield return game.Title;
+            }
+
+            if (game.GameMetadata.Value.OriginalTitle.IsNotNullOrWhiteSpace())
+            {
+                yield return game.GameMetadata.Value.OriginalTitle;
+            }
+
+            foreach (var alternativeTitle in game.GameMetadata.Value.AlternativeTitles.Where(title => title.Title.IsNotNullOrWhiteSpace()))
+            {
+                yield return alternativeTitle.Title;
+            }
+        }
+
+        private static string GetSwitchDisplayTitle(Game game, GameFile gameFile)
+        {
+            return gameFile.Game?.Title ?? game.Title;
+        }
+
+        private static string GetSwitchUpdateTitleId(string baseTitleId)
+        {
+            return string.IsNullOrWhiteSpace(baseTitleId) || baseTitleId.Length < 16
+                ? baseTitleId
+                : baseTitleId[..13] + "800";
+        }
+
+        private static string BuildSwitchTitleDbFileName(string title, string titleId, long version)
+        {
+            return $"{title} [{titleId}][v{version}]";
         }
 
         private string GetNoIntroFileName(GameFile gameFile, RenameProfile renameProfile)

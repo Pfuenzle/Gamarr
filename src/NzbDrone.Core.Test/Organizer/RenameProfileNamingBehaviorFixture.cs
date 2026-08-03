@@ -108,5 +108,122 @@ namespace NzbDrone.Core.Test.Organizer
             Subject.BuildFileName(game, gameFile)
                    .Should().Be("Mega Man IV (USA)");
         }
+
+        [Test]
+        public void RenameProfile_should_use_switch_titledb_format_for_switch_base_game()
+        {
+            _namingConfig.EnableSwitchTitleDbRename = true;
+
+            var game = new Game
+            {
+                Id = 6,
+                Title = "Cult of the Lamb",
+                Year = 2022,
+                Platform = PlatformFamily.NintendoSwitch
+            };
+
+            var gameFile = new GameFile
+            {
+                GameId = 6,
+                Quality = new QualityModel(Quality.Retail)
+            };
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.FindBaseByTitles(It.Is<System.Collections.Generic.IEnumerable<string>>(titles => titles.Contains("Cult of the Lamb"))))
+                  .Returns(new SwitchTitleDbMatch("Cult of the Lamb", "01002E7016C46000"));
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.GetLatestVersion("01002E7016C46000"))
+                  .Returns(131072);
+
+            Subject.BuildFileName(game, gameFile)
+                   .Should().Be("Cult of the Lamb [01002E7016C46000][v131072]");
+        }
+
+        [Test]
+        public void RenameProfile_should_use_switch_titledb_format_for_switch_update_component()
+        {
+            _namingConfig.EnableSwitchTitleDbRename = true;
+
+            var game = new Game
+            {
+                Id = 7,
+                Title = "Cult of the Lamb",
+                Year = 2022,
+                Platform = PlatformFamily.NintendoSwitch
+            };
+
+            var gameFile = new GameFile
+            {
+                GameId = 7,
+                ComponentId = 21,
+                Quality = new QualityModel(Quality.Retail)
+            };
+
+            Mocker.GetMock<IGameComponentRepository>()
+                  .Setup(x => x.Get(21))
+                  .Returns(new GameComponent
+                  {
+                      Id = 21,
+                      GameId = 7,
+                      ComponentType = GameComponentType.Update,
+                      Key = "v1.2.3",
+                      Title = "v1.2.3"
+                  });
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.FindBaseByTitles(It.Is<System.Collections.Generic.IEnumerable<string>>(titles => titles.Contains("Cult of the Lamb"))))
+                  .Returns(new SwitchTitleDbMatch("Cult of the Lamb", "01002E7016C46000"));
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.GetLatestVersion("01002E7016C46800"))
+                  .Returns(1835008);
+
+            Subject.BuildFileName(game, gameFile)
+                   .Should().Be("Cult of the Lamb [01002E7016C46800][v1835008]");
+        }
+
+        [Test]
+        public void RenameProfile_should_use_switch_titledb_format_for_switch_dlc_component()
+        {
+            _namingConfig.EnableSwitchTitleDbRename = true;
+
+            var game = new Game
+            {
+                Id = 8,
+                Title = "Cult of the Lamb",
+                Year = 2022,
+                Platform = PlatformFamily.NintendoSwitch
+            };
+
+            var gameFile = new GameFile
+            {
+                GameId = 8,
+                ComponentId = 31,
+                Quality = new QualityModel(Quality.Retail)
+            };
+
+            Mocker.GetMock<IGameComponentRepository>()
+                  .Setup(x => x.Get(31))
+                  .Returns(new GameComponent
+                  {
+                      Id = 31,
+                      GameId = 8,
+                      ComponentType = GameComponentType.Dlc,
+                      Key = "steam:1",
+                      Title = "Cultist Pack"
+                  });
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.FindDlcByTitles(It.Is<System.Collections.Generic.IEnumerable<string>>(titles => titles.Contains("Cultist Pack"))))
+                  .Returns(new SwitchTitleDbMatch("Cultist Pack", "01002E7016C47001"));
+
+            Mocker.GetMock<ISwitchTitleDbService>()
+                  .Setup(x => x.GetLatestVersion("01002E7016C47001"))
+                  .Returns(0);
+
+            Subject.BuildFileName(game, gameFile)
+                   .Should().Be("Cult of the Lamb [01002E7016C47001][v0]");
+        }
     }
 }
