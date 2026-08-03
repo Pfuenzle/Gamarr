@@ -33,6 +33,13 @@ namespace NzbDrone.Core.Organizer
                 }
             }
 
+            if (config.RenameProfile == RenameProfile.SwitchTitleDb)
+            {
+                config.RenameProfile = RenameProfile.Gamarr;
+                config.EnableSwitchTitleDbRename = true;
+                _repository.Upsert(config);
+            }
+
             return config;
         }
 

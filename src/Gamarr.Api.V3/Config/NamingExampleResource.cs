@@ -18,6 +18,7 @@ namespace Gamarr.Api.V3.Config
 
                 RenameGames = model.RenameGames,
                 RenameProfile = model.RenameProfile,
+                EnableSwitchTitleDbRename = model.EnableSwitchTitleDbRename,
                 ReplaceIllegalCharacters = model.ReplaceIllegalCharacters,
                 ColonReplacementFormat = model.ColonReplacementFormat,
                 StandardGameFormat = model.StandardGameFormat,
@@ -33,6 +34,7 @@ namespace Gamarr.Api.V3.Config
 
                 RenameGames = resource.RenameGames,
                 RenameProfile = resource.RenameProfile,
+                EnableSwitchTitleDbRename = resource.EnableSwitchTitleDbRename,
                 ReplaceIllegalCharacters = resource.ReplaceIllegalCharacters,
                 ColonReplacementFormat = resource.ColonReplacementFormat,
                 StandardGameFormat = resource.StandardGameFormat,

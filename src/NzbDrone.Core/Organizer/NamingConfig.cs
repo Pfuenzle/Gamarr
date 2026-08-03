@@ -6,7 +6,8 @@ namespace NzbDrone.Core.Organizer
     {
         Gamarr = 0,
         NoIntroPreserveById = 1,
-        NoIntroCanonical = 2
+        NoIntroCanonical = 2,
+        SwitchTitleDb = 3
     }
 
     public class NamingConfig : ModelBase
@@ -15,6 +16,7 @@ namespace NzbDrone.Core.Organizer
         {
             RenameGames = false,
             RenameProfile = RenameProfile.Gamarr,
+            EnableSwitchTitleDbRename = false,
             ReplaceIllegalCharacters = true,
             ColonReplacementFormat = ColonReplacementFormat.Smart,
             GameFolderFormat = "{Game Title} ({Release Year})",
@@ -23,6 +25,7 @@ namespace NzbDrone.Core.Organizer
 
         public bool RenameGames { get; set; }
         public RenameProfile RenameProfile { get; set; }
+        public bool EnableSwitchTitleDbRename { get; set; }
         public bool ReplaceIllegalCharacters { get; set; }
         public ColonReplacementFormat ColonReplacementFormat { get; set; }
         public string StandardGameFormat { get; set; }

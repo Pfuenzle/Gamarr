@@ -56,5 +56,27 @@ namespace NzbDrone.Core.Test.Organizer
             Mocker.GetMock<INamingConfigRepository>()
                   .Verify(s => s.Upsert(config), Times.Once());
         }
+
+        [Test]
+        public void should_migrate_legacy_switch_titledb_profile_to_dedicated_flag()
+        {
+            var legacyConfig = new NamingConfig
+            {
+                RenameProfile = RenameProfile.SwitchTitleDb,
+                EnableSwitchTitleDbRename = false
+            };
+
+            Mocker.GetMock<INamingConfigRepository>()
+                  .Setup(s => s.SingleOrDefault())
+                  .Returns(legacyConfig);
+
+            var result = Subject.GetConfig();
+
+            result.RenameProfile.Should().Be(RenameProfile.Gamarr);
+            result.EnableSwitchTitleDbRename.Should().BeTrue();
+
+            Mocker.GetMock<INamingConfigRepository>()
+                  .Verify(s => s.Upsert(It.Is<NamingConfig>(c => c.RenameProfile == RenameProfile.Gamarr && c.EnableSwitchTitleDbRename)), Times.Once());
+        }
     }
 }
